@@ -1,0 +1,20 @@
+[package]
+name = "fw_boot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fw_error = { path = "../fw_error" }
+fw_log = { path = "../fw_log" }
+fw_base = { path = "../fw_base" }
+fw_regdis = { path = "../fw_regdis" }
+fw_rpc = { path = "../fw_rpc" }
+
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+tracing-appender = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+humantime-serde = { workspace = true }
+dotenv = { workspace = true }

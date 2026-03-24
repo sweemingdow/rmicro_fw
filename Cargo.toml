@@ -1,0 +1,60 @@
+[workspace]
+resolver = "3"
+members = ["fw_base","fw_boot","fw_error", "fw_gateway","fw_log", "fw_regdis", "fw_rpc", "fw_web"]
+
+
+[workspace.dependencies]
+# 异步运行时
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+
+# rpc框架
+tonic = "0.12"
+tonic-build = "0.12"
+
+# 增强protobuf
+prost = "0.13"
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+# 解析如: 30s之类的时间
+humantime-serde = "1"
+
+# 日志追踪
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "chrono"] }
+tracing-appender = "0.2"
+
+# web框架
+axum = { version = "0.7", features = ["macros"] }
+
+# nacos注册/发现
+nacos-sdk = { version = "0.6", features = ["default"] }
+
+# 并发安全map
+dashmap = "6"
+
+tower = { version = "0.4", features = ["discover"] }
+tokio-stream = "0.1"
+
+# 本地ip
+local-ip-address = "0.6.10"
+
+# 环境参数
+dotenv = "0.15"
+
+# 时间处理
+chrono = { version = "0.4", features = ["serde"] }
+
+# 异步trait
+async-trait = { version = "0.1" }
+
+# 错误处理
+anyhow = "1.0"
+thiserror = "2.0"
+
+arc-swap = { version = "1.8" }
+
+singleflight-async = {version = "0.2"}

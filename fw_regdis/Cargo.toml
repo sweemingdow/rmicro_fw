@@ -1,0 +1,12 @@
+[package]
+name = "fw_regdis"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fw_error = { path = "../fw_error" }
+
+dashmap = { workspace = true }
+tracing = { workspace = true }
+nacos-sdk = { workspace = true }
+async-trait = { workspace = true }
