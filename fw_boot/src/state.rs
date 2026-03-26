@@ -1,28 +1,40 @@
 use crate::config::Config;
 use fw_error::result::FwResult;
 use fw_regdis::nacos::client::{NacosCliOptions, NacosClient};
-use fw_regdis::nacos::configuration::NacosConfiguration;
+use fw_regdis::nacos::configure::NacosConfigure;
 use fw_regdis::nacos::discovery::NacosDiscovery;
 use fw_regdis::nacos::proxy::NacosProxy;
 use fw_regdis::nacos::registry::NacosRegisterImpl;
-use fw_rpc::tonic_srv::chan_factory::RpcChanFactory;
 use std::sync::Arc;
 use tokio_util::sync;
 
 pub struct RunState {
+    app_name: String,
+    profile: String,
+    mip: String,
     cfg: Arc<Config>,
     nacos_proxy: Arc<NacosProxy>,
     cancel_token: sync::CancellationToken,
-    rpc_chan_factory: Arc<RpcChanFactory>,
 }
 
 impl RunState {
-    pub async fn new(cfg: Arc<Config>, cancel_token: sync::CancellationToken) -> FwResult<Self> {
+    pub async fn new(
+        app_name: &str,
+        profile: &str,
+        mip: &str,
+        cfg: Arc<Config>,
+        cancel_token: sync::CancellationToken,
+    ) -> FwResult<Self> {
+        let server_addr = cfg.nacos_cli_cfg.server_addr.clone();
+        let namespace_id = cfg.nacos_cli_cfg.namespace_id.clone();
+        let username = cfg.nacos_cli_cfg.username.clone();
+        let password = cfg.nacos_cli_cfg.password.clone();
+
         let nacos_cli = NacosClient::with_ops(NacosCliOptions {
-            server_addr: "".to_string(),
-            namespace_id: "".to_string(),
-            username: "".to_string(),
-            password: "".to_string(),
+            server_addr,
+            namespace_id,
+            username,
+            password,
         })
         .await?;
 
@@ -30,19 +42,16 @@ impl RunState {
 
         let register = NacosRegisterImpl::new(&nacos_cli);
         let discover = NacosDiscovery::new(&nacos_cli);
-        let configuration = NacosConfiguration::new(&nacos_cli);
+        let configuration = NacosConfigure::new(&nacos_cli);
         let nacos_proxy = Arc::new(NacosProxy::with(register, configuration, discover));
 
-        let chan_factory = Arc::new(RpcChanFactory::new(
-            &cfg.nacos_center_cfg.registry.group_name,
-            nacos_proxy.clone(),
-        ));
-
         Ok(Self {
+            app_name: app_name.to_string(),
+            profile: profile.to_string(),
+            mip: mip.to_string(),
             cfg,
             nacos_proxy,
             cancel_token,
-            rpc_chan_factory: chan_factory,
         })
     }
 }
@@ -60,7 +69,15 @@ impl RunState {
         self.cancel_token.clone()
     }
 
-    pub fn rpc_chan_factory(&self) -> Arc<RpcChanFactory> {
-        self.rpc_chan_factory.clone()
+    pub fn app_name(&self) -> &str {
+        &self.app_name
+    }
+
+    pub fn profile(&self) -> &str {
+        &self.profile
+    }
+
+    pub fn mip(&self) -> &str {
+        &self.mip
     }
 }

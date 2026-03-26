@@ -5,9 +5,10 @@ edition = "2024"
 
 [dependencies]
 fw_error = { path = "../fw_error" }
+fw_boot = { path = "../fw_boot" }
 
-dashmap = { workspace = true }
 tracing = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
+tower-http = { workspace = true }

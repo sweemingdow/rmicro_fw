@@ -1,7 +1,9 @@
 use std::time::{Duration, Instant};
 use tokio::{task::JoinHandle, time};
 
+use fw_error::{FwError, FwResult};
 use tokio_util::sync;
+use tracing::Instrument;
 
 pub struct BootNode {
     name: String,
@@ -46,44 +48,93 @@ impl BootChain {
 
     pub fn add_frontend<F, Fut>(mut self, name: &str, factory: F) -> Self
     where
-        F: FnOnce(sync::CancellationToken) -> Fut,
-        Fut: Future<Output = ()> + Send + 'static,
+        F: FnOnce(sync::CancellationToken) -> Fut + Send + 'static,
+        Fut: Future<Output = FwResult<()>> + Send + 'static,
     {
         let token = sync::CancellationToken::new();
-        let handle = tokio::spawn(factory(token.clone()));
+        let token_clone = token.clone();
+        let parent_token = self.parent_token.clone();
+        let node_name = name.to_string();
+
+        let current_span = tracing::Span::current();
+
+        let handle = tokio::spawn(
+            async move {
+                if let Err(e) = factory(token_clone).await {
+                    tracing::error!(
+                        "[BootChain Starter]: node=[{}] start failed, err={:?}",
+                        node_name,
+                        e
+                    );
+                    parent_token.cancel();
+                }
+            }
+            .instrument(current_span),
+        );
+
         self.frontends
             .push(BootNode::new(name.to_string(), handle, token));
+
         self
     }
 
+
     pub fn add_backend<F, Fut>(mut self, name: &str, factory: F) -> Self
     where
-        F: FnOnce(sync::CancellationToken) -> Fut,
-        Fut: Future<Output = ()> + Send + 'static,
+        F: FnOnce(sync::CancellationToken) -> Fut + Send + 'static,
+        Fut: Future<Output = FwResult<()>> + Send + 'static,
     {
         let token = sync::CancellationToken::new();
-        let handle = tokio::spawn(factory(token.clone()));
+        let token_clone = token.clone();
+        let parent_token = self.parent_token.clone();
+        let node_name = name.to_string();
+
+        let current_span = tracing::Span::current();
+
+        let handle = tokio::spawn(
+            async move {
+                // 如果后端服务（比如 RPC）启动报错
+                if let Err(e) = factory(token_clone).await {
+                    tracing::error!(
+                        "[BootChain Starter]: backend node=[{}] start failed, err={:?}",
+                        node_name,
+                        e
+                    );
+
+                    parent_token.cancel();
+                }
+            }
+            .instrument(current_span),
+        );
+
         self.backends
             .push(BootNode::new(name.to_string(), handle, token));
+
         self
     }
 
     /// 执行链式停机
     /// stage_timeout: 每一个阶段（Frontend/Backend）允许的最长退出时间
-    pub async fn run(self, stage_timeout: Duration) {
+    pub async fn run<F, Fut>(self, stage_timeout: Duration, ready_action: F) -> FwResult<()>
+    where
+        F: FnOnce() -> Fut,
+        Fut: Future<Output = FwResult<()>>,
+    {
+        ready_action().await?;
+
         // 1. 等待 App 框架的总控信号
         self.parent_token.cancelled().await;
 
         let exit_start = Instant::now();
 
-        tracing::debug!(
+        tracing::trace!(
             "[BootChain Destroy]: starting shutdown sequence, frontends={}, backends={}",
             self.frontends.len(),
             self.backends.len()
         );
 
         // 2. 第一阶段：关闭所有前台节点 (Axum, MQ...)
-        tracing::debug!("[BootChain Destroy]: stopping all frontends now...");
+        tracing::trace!("[BootChain Destroy]: stopping all frontends now...");
         for node in &self.frontends {
             node.token.cancel();
         }
@@ -91,7 +142,7 @@ impl BootChain {
         let frontend_stop_task = async {
             for node in self.frontends {
                 let _ = node.handle.await;
-                tracing::info!(
+                tracing::debug!(
                     "[BootChain Destroy]: frontend node=[{}] exited safely",
                     node.name
                 );
@@ -107,7 +158,7 @@ impl BootChain {
         }
 
         // 3. 第二阶段：关闭所有后台节点 (Tonic RPC...)
-        tracing::info!("[BootChain Destroy]: stopping all backends now...");
+        tracing::trace!("[BootChain Destroy]: stopping all backends now...");
         for node in &self.backends {
             node.token.cancel();
         }
@@ -115,7 +166,7 @@ impl BootChain {
         let backend_stop_task = async {
             for node in self.backends {
                 let _ = node.handle.await;
-                tracing::info!(
+                tracing::debug!(
                     "[BootChain Destroy]: backend node=[{}] exited safely",
                     node.name
                 );
@@ -134,5 +185,7 @@ impl BootChain {
             "[BootChain Destroy]: all nodes exit safely, took={:?}",
             exit_start.elapsed()
         );
+
+        Ok(())
     }
 }

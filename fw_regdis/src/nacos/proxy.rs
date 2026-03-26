@@ -1,4 +1,4 @@
-use crate::nacos::configuration::NacosConfiguration;
+use crate::nacos::configure::NacosConfigure;
 use crate::nacos::discovery::NacosDiscovery;
 use crate::nacos::registry::{DeregisterOptions, NacosRegister, RegisterOptions};
 use async_trait::async_trait;
@@ -8,20 +8,20 @@ use std::sync::Arc;
 
 pub struct NacosProxy {
     _register: Arc<dyn NacosRegister + Send + Sync>,
-    _configuration: Arc<NacosConfiguration>,
+    _configure: Arc<NacosConfigure>,
     _discovery: Arc<NacosDiscovery>,
 }
 
 impl NacosProxy {
     pub fn with(
         register: Box<dyn NacosRegister + Send + Sync>,
-        configuration: NacosConfiguration,
+        configuration: NacosConfigure,
         discovery: NacosDiscovery,
     ) -> Self {
         Self {
             // box直接转arc
             _register: register.into(),
-            _configuration: Arc::new(configuration),
+            _configure: Arc::new(configuration),
             _discovery: Arc::new(discovery),
         }
     }
@@ -34,8 +34,8 @@ impl NacosProxy {
         self._discovery.clone()
     }
 
-    pub fn get_nacos_configuration(&self) -> Arc<NacosConfiguration> {
-        self._configuration.clone()
+    pub fn get_nacos_configure(&self) -> Arc<NacosConfigure> {
+        self._configure.clone()
     }
 }
 
@@ -56,7 +56,7 @@ impl NacosProxy {
         data_id: String,
         group: String,
     ) -> FwResult<config::ConfigResponse> {
-        self._configuration.fetch_config(data_id, group).await
+        self._configure.fetch_config(data_id, group).await
     }
 
     pub async fn listen_then_save<F>(
@@ -68,7 +68,7 @@ impl NacosProxy {
     where
         F: Fn(Arc<config::ConfigResponse>) + Send + Sync + 'static,
     {
-        self._configuration
+        self._configure
             .listen_then_save(data_id, group, handler)
             .await
     }

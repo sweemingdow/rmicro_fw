@@ -1,19 +1,16 @@
 use crate::config::Config;
-use crate::graceful;
 use crate::state::RunState;
+use crate::{BootChain, graceful};
+use fw_adapter::web_bridge::recorder;
 use fw_base::my_utils;
 use fw_error::lib_error::FwError;
 use fw_error::result::FwResult;
 use fw_log::my_log;
-use fw_regdis::nacos::client::{NacosCliOptions, NacosClient};
-use fw_regdis::nacos::configuration::NacosConfiguration;
-use fw_regdis::nacos::discovery::NacosDiscovery;
 use fw_regdis::nacos::proxy::NacosProxy;
-use fw_regdis::nacos::registry::{
-    DeregisterOptions, NacosRegister, NacosRegisterImpl, RegisterOptions,
-};
-use fw_rpc::tonic_srv::chan_factory::RpcChanFactory;
+use fw_regdis::nacos::registry::{DeregisterOptions, NacosRegister, RegisterOptions};
+use nacos_sdk::api::config::ConfigChangeListener;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 use std::time;
 use tokio_util::sync;
@@ -22,7 +19,7 @@ use tracing_appender::non_blocking;
 
 const DEFAULT_STOP_TIMEOUT: time::Duration = time::Duration::from_secs(30);
 const DEFAULT_CLEAN_TIMEOUT: time::Duration = time::Duration::from_secs(10);
-const DEFAULT_STOP_STAGES: time::Duration = time::Duration::from_secs(2);
+const DEFAULT_STOP_STAGES: u8 = 2;
 const DEFAULT_STOP_STAGE_TIMEOUT: time::Duration = time::Duration::from_secs(10);
 
 #[derive(Debug)]
@@ -59,12 +56,18 @@ impl App {
         let http_port = cfg.app_cfg.http_port;
         let rpc_port = cfg.app_cfg.rpc_port;
 
+        recorder::init_project_name(&app_name);
+
         let log_guard = my_log::init_logger(my_log::LogOptions {
             max_log_files: cfg.log_cfg.max_log_files,
             log_dir: cfg.log_cfg.log_dir.to_string(),
             app_name: app_name.clone(),
             port: http_port,
+            thread_name: cfg.log_cfg.thread_name,
+            thread_id: cfg.log_cfg.thread_id,
         });
+
+        tracing::debug!("parse configuration completed, cfg=\n{:#?}", cfg);
 
         let mip = my_utils::get_machine_ip();
 
@@ -84,48 +87,110 @@ impl App {
 }
 
 impl App {
-    pub async fn run<F1, Fut1, F2, Fut2>(
+    pub async fn prepare<ST>(self: Arc<Self>) -> FwResult<(Arc<RunState>, ST)>
+    where
+        ST: serde::de::DeserializeOwned + Debug,
+    {
+        let rs = Arc::new(self.clone().new_run_state().await?);
+
+        let config_group = &self.cfg.nacos_center_cfg.config.group_name;
+
+        let static_cfg: ST = rs
+            .nacos_proxy()
+            .get_nacos_configure()
+            .fetch_static_config(config_group)
+            .await?;
+
+        tracing::debug!(
+            "fetch and parse static config completed, static_cfg=\n{:#?}",
+            static_cfg
+        );
+
+        Ok((rs, static_cfg))
+    }
+
+    pub async fn prepare_with_dynamic<ST, DT, L>(
         self: Arc<Self>,
+        dynamic_listener: Arc<L>,
+    ) -> FwResult<(Arc<RunState>, ST, DT)>
+    where
+        ST: serde::de::DeserializeOwned + Debug + Send + 'static,
+        DT: serde::de::DeserializeOwned + Debug + Send + 'static,
+        L: ConfigChangeListener + 'static,
+    {
+        let rs = Arc::new(self.clone().new_run_state().await?);
+
+        let config_group = self.cfg.nacos_center_cfg.config.group_name.clone();
+        let configure = rs.nacos_proxy().get_nacos_configure();
+
+        // 使用 try_join!，只要有一个失败就立即返回错误
+        let (static_cfg, dynamic_cfg) = tokio::try_join!(
+            configure.fetch_static_config::<ST>(&config_group),
+            configure.fetch_dynamic_config::<DT>(&config_group)
+        )?;
+
+        tracing::debug!(
+            "fetch and parse static config completed, content=\n{:#?}",
+            static_cfg
+        );
+        tracing::debug!(
+            "fetch and parse dynamic config completed, content=\n{:#?}",
+            dynamic_cfg
+        );
+
+        configure
+            .listen_dynamic_config(&config_group, dynamic_listener)
+            .await?;
+
+        Ok((rs, static_cfg, dynamic_cfg))
+    }
+}
+
+impl App {
+    async fn run<F1, Fut1, F2, Fut2>(
+        self: Arc<Self>,
+        rs: Arc<RunState>,
         run_action: F1,
         clean_action: F2,
     ) -> FwResult<()>
     where
-        F1: FnOnce(Arc<RunState>) -> Fut1,
-        F2: FnOnce(Arc<RunState>) -> Fut2,
-        Fut1: Future<Output = ()>,
-        Fut2: Future<Output = ()>,
+        F1: FnOnce() -> Fut1 + Send + 'static,
+        Fut1: Future<Output = FwResult<()>> + Send,
+        F2: FnOnce() -> Fut2 + Send + 'static,
+        Fut2: Future<Output = ()> + Send,
     {
-        let app_name = self.get_app_name();
-
         // 创建root span
-        let root_span = tracing::info_span!(
-            "app_meta",
-            %app_name,
-            profile = %self.get_profile(),
-            mip = %self.get_mip()
-        );
+        let root_span = self.clone().create_root_span();
+
+        self.check_timeout_for_stop()?;
 
         let self_clone = self.clone();
         let stop_timeout = self.get_stop_timeout();
         let clean_timeout = self.get_clean_timeout();
+        let lis_span = root_span.clone();
         let runner = async move {
             // 初始化RunState
-            let rs = Arc::new(
-                RunState::new(self_clone.cfg.clone(), self_clone.cancel_token.clone()).await?,
-            );
-
+            // let rs = Arc::new(
+            //     RunState::new(self_clone.cfg.clone(), self_clone.cancel_token.clone()).await?,
+            // );
+            //
             let rs_clone = rs.clone();
             let self_in_lis = self_clone.clone();
             tokio::spawn(async move {
                 // 监听并退出
-                self_in_lis.clone().listen_then_exit(rs_clone).await;
+                self_in_lis
+                    .clone()
+                    .listen_then_exit(rs_clone)
+                    .instrument(lis_span)
+                    .await;
             });
 
             let self_in_stop = self_clone.clone();
-            tokio::select! {
+            let res = tokio::select! {
                 // 业务自身响应cancellation token或自身退出
-                _ = run_action(rs.clone()) => {
+                r = run_action() => {
                     tracing::info!("run_action shutdown completed gracefully");
+                    r
                 }
 
                 // 响应了中断signal后, shutdown超时了
@@ -133,24 +198,14 @@ impl App {
                     // 先等待信号被触发（不管是 Ctrl+C 还是其他地方调了 cancel）
                     self_in_stop.cancel_token.cancelled().await;
 
-                    tracing::warn!("run_action shutdown now...");
+                    tracing::debug!("run_action start shutdown");
 
                     tokio::time::sleep(stop_timeout).await;
                     // 走到这, 已经run_action shutdown已经超时了
                 } => {
-                    tracing::error!(
-                        "run_action shutdown timeout after {:?}",
-                        stop_timeout
-                    );
+                    Err(FwError::TimeoutError("run_action shutdown",format!("timeout after {:?}",stop_timeout)))
                 }
-            }
-
-            // 最后注册到nacos
-            self_clone
-                .clone()
-                .register_to_nacos(rs.nacos_proxy())
-                .await?;
-            tracing::info!("register instance to nacos successfully");
+            };
 
             // 确保停机信号已经触发或业务自然的结束
             if !self_clone.cancel_token.is_cancelled() {
@@ -159,16 +214,16 @@ impl App {
 
             // 自定义清理
             let clean_task = async {
-                clean_action(rs).await;
+                clean_action().await;
             };
 
             if let Err(_) = tokio::time::timeout(clean_timeout, clean_task).await {
                 tracing::error!("clean_action shutdown timeout after:{:?}", clean_timeout);
             }
 
-            tracing::info!("application loop done, exit process...");
+            tracing::info!("application loop done, exit process!");
 
-            Ok::<(), FwError>(())
+            res
         };
 
         runner.instrument(root_span).await?;
@@ -186,6 +241,39 @@ impl App {
                 drop(guard);
             }
         }
+    }
+}
+
+impl App {
+    pub async fn run_with<F, Fut, C, CFut>(
+        self: Arc<Self>,
+        rs: Arc<RunState>,
+        build_chain: F,
+        clean_action: C,
+    ) -> FwResult<()>
+    where
+        F: FnOnce(BootChain) -> Fut + Send + 'static,
+        Fut: Future<Output = BootChain> + Send,
+        // 清理闭包
+        C: FnOnce() -> CFut + Send + 'static,
+        CFut: Future<Output = ()> + Send,
+    {
+        let stage_timeout = self.get_stage_timeout();
+        let self_cp = self.clone();
+        self.run(
+            rs.clone(),
+            move || async move {
+                let chain = build_chain(BootChain::new(rs.cancel_token().clone())).await;
+
+                chain
+                    .run(stage_timeout, move || async move {
+                        self_cp.register_to_nacos(rs.nacos_proxy()).await
+                    })
+                    .await
+            },
+            clean_action,
+        )
+        .await
     }
 }
 
@@ -294,6 +382,62 @@ impl App {
             .app_cfg
             .component_clean_timeout
             .unwrap_or(DEFAULT_CLEAN_TIMEOUT)
+    }
+
+    pub fn get_stage_timeout(&self) -> time::Duration {
+        self.cfg
+            .app_cfg
+            .stage_stop_timeout
+            .unwrap_or(DEFAULT_STOP_STAGE_TIMEOUT)
+    }
+
+    fn get_stage(&self) -> u8 {
+        self.cfg.app_cfg.stop_stages.unwrap_or(DEFAULT_STOP_STAGES)
+    }
+
+    fn check_timeout_for_stop(&self) -> FwResult<()> {
+        let stop_timeout = self.get_stop_timeout();
+        let stages = self.get_stage() as u32;
+        let stage_timeout = self.get_stage_timeout();
+
+        let total_stage_duration = stage_timeout.checked_mul(stages).ok_or_else(|| {
+            FwError::ConfigError(
+                "timeout configuration",
+                "stop_stages or stage_stop_timeout is too large".to_string(),
+            )
+        })?;
+
+        if stop_timeout <= total_stage_duration {
+            let err_msg = format!(
+                "invalid shutdown config: total stop_timeout ({:?}) must be greater than \
+                all stages combined ({:?} * {} = {:?})",
+                stop_timeout, stage_timeout, stages, total_stage_duration
+            );
+
+            tracing::error!("{}", err_msg);
+            return Err(FwError::ConfigError("timeout configuration", err_msg));
+        }
+
+        Ok(())
+    }
+
+    pub fn create_root_span(self: Arc<Self>) -> tracing::Span {
+        tracing::info_span!(
+            "app_meta",
+            app_name = %self.get_app_name(),
+            profile = %self.get_profile(),
+            mip = %self.get_mip())
+    }
+
+    pub async fn new_run_state(self: Arc<Self>) -> FwResult<RunState> {
+        RunState::new(
+            self.get_app_name(),
+            self.get_profile(),
+            self.get_mip(),
+            self.cfg.clone(),
+            self.cancel_token.clone(),
+        )
+        .await
     }
 }
 

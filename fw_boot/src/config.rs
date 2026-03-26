@@ -1,9 +1,11 @@
 use fw_error::lib_error::FwError;
 use fw_error::result::FwResult;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 use std::{env, fs, time};
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     pub app_cfg: AppConfig,
 
@@ -15,6 +17,7 @@ pub struct Config {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct AppConfig {
     #[serde(skip)]
     pub app_name: String,
@@ -27,9 +30,11 @@ pub struct AppConfig {
     pub rpc_port: u16,
 
     // 服务停机超时时间(http_server, rpc_server...)
+    #[serde(with = "humantime_serde")]
     pub stop_timeout: Option<time::Duration>,
 
     // 组件清理超时时间(sqL, redis...)
+    #[serde(with = "humantime_serde")]
     pub component_clean_timeout: Option<time::Duration>,
 
     // 停止的阶段数
@@ -39,10 +44,12 @@ pub struct AppConfig {
     /*
     stop_timeout > stop_stages * stage_stop_timeout
     */
+    #[serde(with = "humantime_serde")]
     pub stage_stop_timeout: Option<time::Duration>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct NacosClientConfig {
     pub server_addr: String,
 
@@ -56,6 +63,7 @@ pub struct NacosClientConfig {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct NacosCenterConfig {
     pub config: NacosConfig,
 
@@ -63,20 +71,24 @@ pub struct NacosCenterConfig {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct NacosConfig {
     pub group_name: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct NacosRegistry {
     pub group_name: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct LogConfig {
     pub max_log_files: u16,
     pub log_dir: String,
-    pub rust_log: String, // env中没有设置, 兜底的
+    pub thread_name: bool,
+    pub thread_id: bool,
 }
 
 impl Config {
@@ -125,5 +137,6 @@ fn load_env(env_path: &str) -> FwResult<()> {
 }
 
 fn get_var_from_env(key: &str) -> FwResult<String> {
-    env::var(key).map_err(|e| FwError::LoadError("env", e.to_string()))
+    env::var(key)
+        .map_err(|e| FwError::LoadError("env var", format!("key={}, err={}", key, e.to_string())))
 }

@@ -8,7 +8,7 @@ fw_error = { path = "../fw_error" }
 fw_log = { path = "../fw_log" }
 fw_base = { path = "../fw_base" }
 fw_regdis = { path = "../fw_regdis" }
-fw_rpc = { path = "../fw_rpc" }
+fw_adapter = { path = "../fw_adapter", features = ["web_bridge"] }
 
 tokio = { workspace = true }
 tokio-util = { workspace = true }
@@ -18,3 +18,4 @@ serde = { workspace = true }
 serde_yaml = { workspace = true }
 humantime-serde = { workspace = true }
 dotenv = { workspace = true }
+nacos-sdk = { workspace = true }

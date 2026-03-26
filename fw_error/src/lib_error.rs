@@ -19,4 +19,13 @@ pub enum FwError {
 
     #[error("file error for {0}, {1}")]
     FileError(&'static str, String),
+
+    #[error("config error for {0}, {1}")]
+    ConfigError(&'static str, String),
+
+    #[error("timeout error for {0}, {1}")]
+    TimeoutError(&'static str, String),
+
+    #[error("init error for {0}, {1}")]
+    InitError(&'static str, String),
 }

@@ -1,18 +1,15 @@
 [package]
-name = "fw_rpc"
+name = "fw_sqlx"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 fw_error = { path = "../fw_error" }
 fw_regdis = { path = "../fw_regdis" }
-fw_boot = { path = "../fw_boot" }
 
-nacos-sdk = { workspace = true }
-dashmap = { workspace = true }
 tracing = { workspace = true }
-tonic = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 tower = { workspace = true }
-singleflight-async = {workspace = true}
+serde = { workspace = true }
+sqlx = { workspace = true }

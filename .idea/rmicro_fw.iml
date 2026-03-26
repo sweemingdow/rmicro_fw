@@ -5,11 +5,13 @@
       <sourceFolder url="file://$MODULE_DIR$/fw_log/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw_regdis/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/fw_adapter/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw_base/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw_boot/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw_error/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw_gateway/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw_rpc/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/fw_sqlx/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/fw_web/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

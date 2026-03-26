@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["fw_base","fw_boot","fw_error", "fw_gateway","fw_log", "fw_regdis", "fw_rpc", "fw_web"]
+members = ["fw_base", "fw_boot", "fw_adapter", "fw_error", "fw_gateway", "fw_log", "fw_regdis", "fw_rpc", "fw_sqlx", "fw_web"]
 
 
 [workspace.dependencies]
@@ -37,6 +37,8 @@ nacos-sdk = { version = "0.6", features = ["default"] }
 dashmap = "6"
 
 tower = { version = "0.4", features = ["discover"] }
+tower-http = { version = "0.5", features = ["trace"] }
+
 tokio-stream = "0.1"
 
 # 本地ip
@@ -57,4 +59,8 @@ thiserror = "2.0"
 
 arc-swap = { version = "1.8" }
 
-singleflight-async = {version = "0.2"}
+singleflight-async = { version = "0.2" }
+
+sqlx = { version = "0.8", features = ["runtime-tokio", "mysql", "migrate", "chrono"] }
+
+regex = "1.12"

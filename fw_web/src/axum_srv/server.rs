@@ -1,12 +1,12 @@
 use fw_error::lib_error::FwError;
 use fw_error::result::FwResult;
 use tokio_util::sync;
+use tracing::Instrument;
 
 pub struct AxumServer {
     port: u16,
     cancel_token: sync::CancellationToken,
 }
-
 
 impl AxumServer {
     pub fn new(port: u16, cancel_token: sync::CancellationToken) -> Self {
@@ -30,11 +30,17 @@ impl AxumServer {
         tracing::info!("axum server listening on {}", addr);
 
         let token = self.cancel_token.clone();
+        let close_span = tracing::Span::current();
         axum::serve(listener, app)
-            .with_graceful_shutdown(async move {
-                token.cancelled().await;
-                tracing::warn!("axum server received stop signal, start shutdown gracefully...");
-            })
+            .with_graceful_shutdown(
+                async move {
+                    token.cancelled().await;
+                    tracing::info!(
+                        "axum server received stop signal, start shutdown gracefully..."
+                    );
+                }
+                .instrument(close_span),
+            )
             .await
             .map_err(|e| FwError::RunningError("axum server run", e.to_string()))?;
 
@@ -49,3 +55,5 @@ async fn handler_404(uri: axum::http::Uri) -> axum::http::StatusCode {
 
     axum::http::StatusCode::NOT_FOUND
 }
+
+
