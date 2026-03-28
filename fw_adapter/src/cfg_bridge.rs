@@ -1,5 +1,5 @@
+use fw_base::configuration::static_config::MySqlConfig;
 use fw_error::{FwError, FwResult};
-use fw_regdis::nacos::configuration::MySqlConfig;
 use fw_sqlx::mysql::client::MySqlOptions;
 
 pub struct MysqlConfigWrapper(pub MySqlConfig);

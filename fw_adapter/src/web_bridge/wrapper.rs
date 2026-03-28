@@ -1,9 +1,16 @@
-use crate::err_bridge::AppError;
 use crate::web_bridge::RespResult;
-use crate::web_bridge::recorder::ErrLogRecorder;
+use anyhow::anyhow;
 use axum::response::{IntoResponse, Response};
+use fw_error::app_error::AppError;
+use fw_error::recorder::ErrLogRecorder;
 
 pub struct AnyErrorWrapper(pub anyhow::Error);
+
+impl AnyErrorWrapper {
+    pub fn from_app_err(ae: AppError) -> Self {
+        Self(anyhow!(ae))
+    }
+}
 
 impl<E> From<E> for AnyErrorWrapper
 where

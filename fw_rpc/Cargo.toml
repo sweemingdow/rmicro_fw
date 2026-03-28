@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+fw_base = { path = "../fw_base" }
 fw_error = { path = "../fw_error" }
 fw_regdis = { path = "../fw_regdis" }
 fw_boot = { path = "../fw_boot" }
+fw_adapter = { path = "../fw_adapter" }
+
 
 nacos-sdk = { workspace = true }
 dashmap = { workspace = true }
@@ -15,4 +18,6 @@ tonic = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 tower = { workspace = true }
-singleflight-async = {workspace = true}
+singleflight-async = { workspace = true }
+serde = { version = "1.0.228", features = ["derive"] }
+anyhow = { workspace = true }

@@ -1,4 +1,3 @@
-pub mod recorder;
 #[cfg(feature = "web_bridge")]
 pub mod response;
 pub mod wrapper;

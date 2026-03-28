@@ -1,13 +1,15 @@
-// fw_web/src/lib.rs
+use crate::axum_srv::middleware::auth_layer;
 use crate::axum_srv::server::AxumServer;
 use axum::http::Request;
+use axum::middleware;
+use fw_base::context::web::WebContext;
+use fw_base::from_scope;
 use fw_boot::BootChain;
 use fw_boot::state::RunState;
-use fw_error::result::FwResult;
 use std::sync::Arc;
 use std::time;
-use tower_http::trace::{DefaultOnResponse, TraceLayer};
-use tracing::{Instrument, Level};
+use tower_http::trace::TraceLayer;
+use tracing::field;
 
 pub trait BootChainWebExt {
     fn add_web_server<F, Fut>(self, name: &str, rs: Arc<RunState>, init_router: F) -> Self
@@ -31,14 +33,31 @@ impl BootChainWebExt for BootChain {
         self.add_frontend(name, move |token| {
             async move {
                 let router = init_router(axum::Router::new()).await;
-                let middleware = TraceLayer::new_for_http()
+
+                let trace_layer = TraceLayer::new_for_http()
                     .make_span_with(move |request: &Request<_>| {
+                        let ctx_opt = from_scope().ok();
+                        let req_id = ctx_opt.as_ref().map(|c| c.req_id()).unwrap_or("");
+                        let uid = ctx_opt
+                            .as_ref()
+                            .and_then(|c| c.uid_with_check().ok())
+                            .unwrap_or("");
+
+                        /*let (req_id, uid) = request
+                        .extensions()
+                        .get::<WebContext>()
+                        .map(|ctx| (ctx.req_id(), ctx.uid_with_check().unwrap_or("")))
+                        .unwrap_or_else(|| ("", ""));*/
+
                         // 给每一个请求携带span
                         tracing::info_span!(
-                            "app_meta",
+                            "trace_meta",
+                            %req_id,
+                            %uid,
                             app_name = %app_name,
                             profile = %profile,
                             mip = %mip,
+                            action = field::Empty, // 占位符, 稍后填充该值
                             method = %request.method(),
                             uri = %request.uri().path(),
                         )
@@ -56,8 +75,10 @@ impl BootChainWebExt for BootChain {
                         },
                     );
 
-                // 挂载到业务路由上
-                let router = router.layer(middleware);
+                let router = router
+                    .layer(trace_layer) // 第二层
+                    .layer(middleware::from_fn(auth_layer)); // 第一层
+
                 AxumServer::new(port, token).run(|_| router).await
             }
         })

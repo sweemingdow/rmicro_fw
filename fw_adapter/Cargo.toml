@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+fw_base = { path = "../fw_base" }
 fw_error = { path = "../fw_error" }
 fw_regdis = { path = "../fw_regdis" }
 fw_sqlx = { path = "../fw_sqlx" }
@@ -13,12 +14,10 @@ thiserror = { workspace = true }
 sqlx = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }
-regex = { workspace = true }
-tracing = { workspace = true }
+
 
 [features]
 defaut = []
-sqlx_bridge = []
 cfg_bridge = []
 web_bridge = []
 

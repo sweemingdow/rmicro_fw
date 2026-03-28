@@ -1,9 +1,10 @@
 use crate::config::Config;
+use crate::ext::RunConfigExt;
 use crate::state::RunState;
 use crate::{BootChain, graceful};
-use fw_adapter::web_bridge::recorder;
-use fw_base::my_utils;
+use fw_base::{my_utils, set_gw_dispatch_val};
 use fw_error::lib_error::FwError;
+use fw_error::recorder;
 use fw_error::result::FwResult;
 use fw_log::my_log;
 use fw_regdis::nacos::proxy::NacosProxy;
@@ -56,7 +57,7 @@ impl App {
         let http_port = cfg.app_cfg.http_port;
         let rpc_port = cfg.app_cfg.rpc_port;
 
-        recorder::init_project_name(&app_name);
+        recorder::init_project_name(app_name.clone());
 
         let log_guard = my_log::init_logger(my_log::LogOptions {
             max_log_files: cfg.log_cfg.max_log_files,
@@ -87,7 +88,7 @@ impl App {
 }
 
 impl App {
-    pub async fn prepare<ST>(self: Arc<Self>) -> FwResult<(Arc<RunState>, ST)>
+    pub async fn prepare<ST: RunConfigExt>(self: Arc<Self>) -> FwResult<(Arc<RunState>, ST)>
     where
         ST: serde::de::DeserializeOwned + Debug,
     {
@@ -101,6 +102,8 @@ impl App {
             .fetch_static_config(config_group)
             .await?;
 
+        set_gw_dispatch_val(&static_cfg.get_gw_dispatch_cfg().dispatch_val)?;
+
         tracing::debug!(
             "fetch and parse static config completed, static_cfg=\n{:#?}",
             static_cfg
@@ -109,7 +112,7 @@ impl App {
         Ok((rs, static_cfg))
     }
 
-    pub async fn prepare_with_dynamic<ST, DT, L>(
+    pub async fn prepare_with_dynamic<ST: RunConfigExt, DT, L>(
         self: Arc<Self>,
         dynamic_listener: Arc<L>,
     ) -> FwResult<(Arc<RunState>, ST, DT)>
@@ -128,6 +131,8 @@ impl App {
             configure.fetch_static_config::<ST>(&config_group),
             configure.fetch_dynamic_config::<DT>(&config_group)
         )?;
+
+        set_gw_dispatch_val(&static_cfg.get_gw_dispatch_cfg().dispatch_val)?;
 
         tracing::debug!(
             "fetch and parse static config completed, content=\n{:#?}",

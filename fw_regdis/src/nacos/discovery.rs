@@ -107,7 +107,7 @@ fn _get_addr(ins: &naming::ServiceInstance, addr_type: &str) -> FwResult<String>
 
     ins.metadata
         .get(attr)
-        .map(|port| format!("{}:{}", ins.ip, port))
+        .map(|port| format!("http://{}:{}", ins.ip, port))
         .ok_or_else(|| {
             FwError::ResultError(format!(
                 "can not found attribute value in metadata for {}",

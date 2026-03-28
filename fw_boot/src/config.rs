@@ -133,7 +133,12 @@ fn build_env_path(app_name: &str, profile: &str) -> String {
 }
 
 fn load_env(env_path: &str) -> FwResult<()> {
-    dotenv::from_path(env_path).map_err(|e| FwError::LoadError("env", e.to_string()))
+    dotenv::from_path(env_path).map_err(|e| {
+        FwError::LoadError(
+            "env",
+            format!("env_path={}, err={}", env_path, e.to_string()),
+        )
+    })
 }
 
 fn get_var_from_env(key: &str) -> FwResult<String> {

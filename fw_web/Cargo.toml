@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+fw_base = { path = "../fw_base" }
+fw_adapter = { path = "../fw_adapter", features = ["web_bridge"] }
 fw_error = { path = "../fw_error" }
 fw_boot = { path = "../fw_boot" }
 
@@ -12,3 +14,6 @@ axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 tower-http = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
