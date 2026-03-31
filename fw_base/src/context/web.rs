@@ -52,7 +52,7 @@ impl WebContext {
     }
 
     pub fn __no_matter_uid(&self) -> &str {
-        self.0.uid.as_deref().unwrap_or_else(|| "")
+        self.0.uid.as_deref().unwrap_or("")
     }
 
     pub fn uid_with_check(&self) -> Result<&str, AppError> {

@@ -5,7 +5,7 @@ use axum::response::IntoResponse;
 use axum::{extract::Request, http::HeaderValue, middleware::Next, response::Response};
 use fw_adapter::web_bridge::wrapper::AnyErrorWrapper;
 use fw_base::context::web::WebContext;
-use fw_base::{get_gw_dispatch_val, into_scope, parse_json};
+use fw_base::{get_gw_dispatch_val, parse_json, web_ctx_into_scope};
 use fw_error::app_error::AppError;
 
 const AUTH_INFO_KEY: &'static str = "X-Auth-Info";
@@ -20,7 +20,7 @@ pub async fn auth_layer(req: Request, next: Next) -> Response {
 
     // 解析鉴权参数
     match parse_auth_info(headers) {
-        Ok(ctx) => into_scope(ctx, next.run(req)).await,
+        Ok(ctx) => web_ctx_into_scope(ctx, next.run(req)).await,
         Err(ae) => AnyErrorWrapper::from_app_err(ae).into_response(),
     }
 }

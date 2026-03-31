@@ -428,7 +428,7 @@ impl App {
 
     pub fn create_root_span(self: Arc<Self>) -> tracing::Span {
         tracing::info_span!(
-            "app_meta",
+            "trace_meta",
             app_name = %self.get_app_name(),
             profile = %self.get_profile(),
             mip = %self.get_mip())

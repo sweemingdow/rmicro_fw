@@ -1,3 +1,4 @@
+use fw_error::{AppError, FwError, FwResult};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -8,8 +9,25 @@ use std::time::Duration;
 pub struct CommStaticConfig {
     pub gw_dispatch_cfg: GwDispatchConfig,
     pub mysql_cfg: Option<MySqlConfig>,
-    pub rpc_call_cfg: Option<HashMap<String, RpcChannelConfig>>,
+    pub rpc_call_cfg: Option<RpcCallConfig>,
 }
+
+impl CommStaticConfig {
+    pub fn get_rpc_srv_ele(&self) -> FwResult<&HashMap<String, RpcChannelConfig>> {
+        Ok(&self.get_rpc_config()?.caller_cfg.srv_ele)
+    }
+
+    pub fn get_rpc_global_timeout(&self) -> FwResult<Duration> {
+        Ok(self.get_rpc_config()?.callee_cfg.global_timeout)
+    }
+
+    fn get_rpc_config(&self) -> FwResult<&RpcCallConfig> {
+        self.rpc_call_cfg
+            .as_ref()
+            .ok_or_else(|| FwError::ConfigError("rpc config", "config missing".to_string()))
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GwDispatchConfig {
@@ -36,6 +54,25 @@ pub struct MySqlConfig {
 
     #[serde(with = "humantime_serde")]
     pub idle_timeout: Duration,
+}
+#[derive(Debug, Deserialize, Default, Clone)]
+#[serde(rename_all = "kebab-case", default)]
+pub struct RpcCallConfig {
+    pub caller_cfg: CallerConfig,
+    pub callee_cfg: CalleeConfig,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+#[serde(rename_all = "kebab-case", default)]
+pub struct CallerConfig {
+    pub srv_ele: HashMap<String, RpcChannelConfig>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+#[serde(rename_all = "kebab-case", default)]
+pub struct CalleeConfig {
+    #[serde(with = "humantime_serde")]
+    pub global_timeout: Duration,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

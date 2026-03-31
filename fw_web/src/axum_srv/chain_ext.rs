@@ -2,14 +2,13 @@ use crate::axum_srv::middleware::auth_layer;
 use crate::axum_srv::server::AxumServer;
 use axum::http::Request;
 use axum::middleware;
-use fw_base::context::web::WebContext;
-use fw_base::from_scope;
 use fw_boot::BootChain;
 use fw_boot::state::RunState;
 use std::sync::Arc;
 use std::time;
 use tower_http::trace::TraceLayer;
 use tracing::field;
+use fw_base::web_ctx_from_scope;
 
 pub trait BootChainWebExt {
     fn add_web_server<F, Fut>(self, name: &str, rs: Arc<RunState>, init_router: F) -> Self
@@ -36,7 +35,7 @@ impl BootChainWebExt for BootChain {
 
                 let trace_layer = TraceLayer::new_for_http()
                     .make_span_with(move |request: &Request<_>| {
-                        let ctx_opt = from_scope().ok();
+                        let ctx_opt = web_ctx_from_scope().ok();
                         let req_id = ctx_opt.as_ref().map(|c| c.req_id()).unwrap_or("");
                         let uid = ctx_opt
                             .as_ref()
