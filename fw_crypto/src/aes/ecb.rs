@@ -1,5 +1,6 @@
-use crate::b64;
+use crate::aes::{AesBitsType, AesKeyDisplayType};
 use crate::hex::hex_encode;
+use crate::{b64, into_plain};
 use aes::cipher::crypto_common::rand_core::OsRng;
 use aes::{
     Aes128, Aes256,
@@ -7,6 +8,47 @@ use aes::{
 };
 use ecb::cipher::KeyInit;
 use fw_error::{FwError, FwResult};
+
+pub struct AesEcb {
+    key: Vec<u8>,
+    bits_type: AesBitsType,
+}
+
+impl AesEcb {
+    pub fn new(
+        key_str: &str,
+        bits_type: AesBitsType,
+        key_type: AesKeyDisplayType,
+    ) -> FwResult<Self> {
+        let key = key_type.to_bin(key_str)?;
+
+        Ok(Self { key, bits_type })
+    }
+
+    pub fn encrypt(&self, plains: &str) -> FwResult<String> {
+        let encrypt_fn = match self.bits_type {
+            AesBitsType::Bits256 => ecb_256_encrypt_floor,
+            AesBitsType::Bits128 => ecb_128_encrypt_floor,
+        };
+
+        let ciphers = encrypt_fn(self.key.as_slice(), plains.as_bytes())?;
+
+        Ok(b64::encode(ciphers))
+    }
+
+    pub fn decrypt(&self, ciphers: &str) -> FwResult<String> {
+        let ciphers = b64::decode(ciphers)?;
+
+        let decrypt_fn = match self.bits_type {
+            AesBitsType::Bits256 => ecb_256_decrypt_floor,
+            AesBitsType::Bits128 => ecb_128_decrypt_floor,
+        };
+
+        let plains = decrypt_fn(self.key.as_slice(), ciphers.as_slice())?;
+
+        into_plain("AesEcb decrypt", plains)
+    }
+}
 
 type Aes256EcbEnc = ecb::Encryptor<Aes256>;
 type Aes256EcbDec = ecb::Decryptor<Aes256>;
@@ -115,6 +157,7 @@ pub fn gen_ecb_128_key_with_b64() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::aes::AesKeyDisplayType;
     use crate::hex::hex_decode;
 
     #[test]
@@ -147,5 +190,21 @@ mod tests {
         let decrypted = ecb_128_decrypt(&key, &cipher_b64).unwrap();
 
         assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn test_aec_ecb() {
+        let key = gen_ecb_256_key_with_b64();
+
+        let ae = AesEcb::new(&key, AesBitsType::Bits256, AesKeyDisplayType::B64).unwrap();
+
+        let plaintext = "Hello AES-256-CBC！中文测试 🎉@@fsdf";
+        println!("plaintext={}", plaintext);
+
+        let ciphertext = ae.encrypt(plaintext).unwrap();
+        println!("ciphertext={}", ciphertext);
+
+        let plaintext = ae.decrypt(&ciphertext).unwrap();
+        println!("plaintext={}", plaintext);
     }
 }

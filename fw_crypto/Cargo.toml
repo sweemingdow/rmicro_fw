@@ -17,3 +17,19 @@ hex = { version = "0" }
 aes = "0"
 cbc = { version = "0", features = ["std"] }
 ecb = "0"
+rsa = { version = "0", features = ["pem"] }
+[dev-dependencies]
+criterion = { workspace = true }
+
+#[[bench]]
+#name = "ecb_bench"
+#harness = false
+
+#[[bench]]
+#name = "cbc_bench"
+#harness = false
+
+[[bench]]
+name = "gcm_bench"
+harness = false
+

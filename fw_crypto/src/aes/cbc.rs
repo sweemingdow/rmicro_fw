@@ -1,6 +1,6 @@
-use crate::aes::{AesBitsType, into_plain};
+use crate::aes::{ AesBitsType, AesKeyDisplayType};
 use crate::hex::hex_encode;
-use crate::{KeyDisplayType, b64};
+use crate::{b64, into_plain};
 use aes::{
     Aes128, Aes256,
     cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, block_padding::Pkcs7},
@@ -19,7 +19,7 @@ impl AesCbc {
         key_str: &str,
         iv_str: &str,
         bits_type: AesBitsType,
-        key_type: KeyDisplayType,
+        key_type: AesKeyDisplayType,
     ) -> FwResult<Self> {
         let key = key_type.to_bin(key_str)?;
         let iv = key_type.to_bin(iv_str)?;
@@ -233,7 +233,7 @@ mod tests {
         let key = gen_cbc_256_key_with_hex();
         let iv = gen_iv_with_hex();
 
-        let ac = AesCbc::new(&key, &iv, AesBitsType::Bits256, KeyDisplayType::Hex).unwrap();
+        let ac = AesCbc::new(&key, &iv, AesBitsType::Bits256, AesKeyDisplayType::Hex).unwrap();
 
         let plaintext = "Hello AES-256-CBC！中文测试 🎉";
         println!("plaintext={}", plaintext);

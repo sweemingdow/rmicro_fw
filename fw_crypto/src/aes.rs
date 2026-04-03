@@ -1,4 +1,6 @@
 use fw_error::{FwError, FwResult};
+use crate::b64;
+use crate::hex::hex_decode;
 
 pub mod cbc;
 pub mod ecb;
@@ -9,7 +11,17 @@ pub enum AesBitsType {
     Bits128,
 }
 
-pub fn into_plain(desc: &'static str, plains: Vec<u8>) -> FwResult<String> {
-    String::from_utf8(plains)
-        .map_err(|e| FwError::CryptoError(desc, format!("invalid decrypted vec data, err={}", e)))
+pub enum AesKeyDisplayType {
+    Hex,
+    B64,
 }
+
+impl AesKeyDisplayType {
+    pub fn to_bin(&self, key: &str) -> FwResult<Vec<u8>> {
+        match self {
+            AesKeyDisplayType::Hex => hex_decode(key),
+            AesKeyDisplayType::B64 => b64::decode(key),
+        }
+    }
+}
+
