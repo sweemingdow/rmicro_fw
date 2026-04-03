@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use fw_error::{AppError, FwResult};
+use fw_error::AppError;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::task_local;
@@ -24,21 +24,21 @@ pub fn from_scope() -> Result<WebContext, AppError> {
 #[derive(Debug, Clone)]
 pub struct WebContext(Arc<WebContextInner>);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WebContextInner {
-    req_id: String,
+    pub req_id: String,
 
-    uid: Option<String>,
+    pub uid: Option<String>,
 
-    client_type: u8,
+    pub client_type: u8,
 
-    client_version: String,
+    pub client_version: String,
 
-    in_white: bool,
+    pub in_white: bool,
 
-    in_callback: bool,
+    pub in_callback: bool,
 
-    in_open: bool, // more fields...
+    pub in_open: bool, // more fields...
 }
 
 impl WebContext {

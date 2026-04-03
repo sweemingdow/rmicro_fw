@@ -12,6 +12,7 @@ pub struct RunState {
     app_name: String,
     profile: String,
     mip: String,
+    http_port: u16,
     cfg: Arc<Config>,
     nacos_proxy: Arc<NacosProxy>,
     cancel_token: sync::CancellationToken,
@@ -22,6 +23,7 @@ impl RunState {
         app_name: &str,
         profile: &str,
         mip: &str,
+        http_port: u16,
         cfg: Arc<Config>,
         cancel_token: sync::CancellationToken,
     ) -> FwResult<Self> {
@@ -49,6 +51,7 @@ impl RunState {
             app_name: app_name.to_string(),
             profile: profile.to_string(),
             mip: mip.to_string(),
+            http_port,
             cfg,
             nacos_proxy,
             cancel_token,
@@ -79,5 +82,9 @@ impl RunState {
 
     pub fn mip(&self) -> &str {
         &self.mip
+    }
+
+    pub fn http_port(&self) -> u16 {
+        self.http_port
     }
 }

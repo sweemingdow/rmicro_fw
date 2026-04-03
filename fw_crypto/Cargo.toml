@@ -1,0 +1,19 @@
+[package]
+name = "fw_crypto"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fw_error = { path = "../fw_error" }
+
+tracing = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+base64 = { version = "0", features = ["std"] }
+aes-gcm = { version = "0" }
+rand = { workspace = true }
+hex = { version = "0" }
+aes = "0"
+cbc = { version = "0", features = ["std"] }
+ecb = "0"

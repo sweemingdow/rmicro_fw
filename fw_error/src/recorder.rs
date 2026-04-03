@@ -28,7 +28,7 @@ fn _get_extract_regex() -> Option<&'static Regex> {
 // 规避日志噪音
 impl ErrLogRecorder for anyhow::Error {
     fn log_record(&self, max_frames: isize) {
-        let err_msg = format!("{:#}", self);
+        let err_msg = format!("{}", self);
 
         if max_frames == 0 {
             tracing::error!(%err_msg);

@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::ext::RunConfigExt;
 use crate::state::RunState;
 use crate::{BootChain, graceful};
-use fw_base::{my_utils, set_gw_dispatch_val};
+use fw_base::{init_pass_strategy, my_utils, set_gw_dispatch_val};
 use fw_error::lib_error::FwError;
 use fw_error::recorder;
 use fw_error::result::FwResult;
@@ -13,7 +13,7 @@ use nacos_sdk::api::config::ConfigChangeListener;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
-use std::time;
+use std::{env, time};
 use tokio_util::sync;
 use tracing::Instrument;
 use tracing_appender::non_blocking;
@@ -54,7 +54,7 @@ impl App {
 
         let app_name = cfg.app_cfg.app_name.clone();
         let profile = cfg.app_cfg.profile.clone();
-        let http_port = cfg.app_cfg.http_port;
+        let http_port = Self::reselect_http_port(cfg.app_cfg.http_port);
         let rpc_port = cfg.app_cfg.rpc_port;
 
         recorder::init_project_name(app_name.clone());
@@ -103,6 +103,13 @@ impl App {
             .await?;
 
         set_gw_dispatch_val(&static_cfg.get_gw_dispatch_cfg().dispatch_val)?;
+
+        let strategy = &static_cfg
+            .get_gw_dispatch_cfg()
+            .pass_strategy
+            .clone()
+            .unwrap_or("".to_string());
+        init_pass_strategy(strategy)?;
 
         tracing::debug!(
             "fetch and parse static config completed, static_cfg=\n{:#?}",
@@ -283,7 +290,7 @@ impl App {
 }
 
 impl App {
-    async fn register_to_nacos(&self, nacos_proxy: Arc<NacosProxy>) -> FwResult<()> {
+    pub async fn register_to_nacos(&self, nacos_proxy: Arc<NacosProxy>) -> FwResult<()> {
         let mut meta_map = HashMap::with_capacity(3);
         meta_map.insert("http_port".to_string(), self.get_http_port().to_string());
         meta_map.insert("rpc_port".to_string(), self.get_rpc_port().to_string());
@@ -298,16 +305,28 @@ impl App {
             meta_data: meta_map,
         };
 
+        tracing::info!(
+            "{} register to nacos, reg_ops={:#?}",
+            self.app_name,
+            reg_ops
+        );
+
         nacos_proxy.register(reg_ops).await
     }
 
-    async fn deregister_from_nacos(&self, nacos_proxy: Arc<NacosProxy>) -> FwResult<()> {
+    pub async fn deregister_from_nacos(&self, nacos_proxy: Arc<NacosProxy>) -> FwResult<()> {
         let deg_ops = DeregisterOptions {
             group_name: Some(self.cfg.nacos_center_cfg.registry.group_name.clone()),
             srv_name: self.app_name.clone(),
             addr: self.http_server_addr.clone(),
             cluster_name: None,
         };
+
+        tracing::info!(
+            "{} deregister from nacos, deg_ops={:#?}",
+            self.app_name,
+            deg_ops
+        );
 
         nacos_proxy.deregister(deg_ops).await
     }
@@ -439,10 +458,21 @@ impl App {
             self.get_app_name(),
             self.get_profile(),
             self.get_mip(),
+            self.get_http_port(),
             self.cfg.clone(),
             self.cancel_token.clone(),
         )
         .await
+    }
+
+    fn reselect_http_port(port_from_cfg: u16) -> u16 {
+        if let Ok(port_str) = env::var("HTTP_PORT") {
+            if let Ok(port) = port_str.parse::<u16>() {
+                return port;
+            }
+        }
+
+        port_from_cfg
     }
 }
 

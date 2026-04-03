@@ -21,6 +21,9 @@ pub enum AppError {
     #[error("parse error for {0}, {1}")]
     ParseError(&'static str, String),
 
+    #[error("fmt error for {0}, {1}")]
+    FormatError(&'static str, String),
+
     #[error("forbidden error, {0}")]
     ForbiddenError(String),
 
@@ -48,8 +51,9 @@ impl AppError {
             Self::SqlDbError(_) => ("900", "Inner Server Error".to_string()),
             Self::RpcCallError(_) => ("901", "Reject Error".to_string()),
             Self::UnauthorizedError() => ("990", "Unauthorized Error".to_string()),
-            Self::InnerError(_) => ("992", "Inner Error".to_string()),
-            Self::ParseError(_, _) => ("993", "Parse Error".to_string()),
+            Self::InnerError(_) => ("991", "Inner Error".to_string()),
+            Self::ParseError(_, _) => ("992", "Parse Error".to_string()),
+            Self::FormatError(_, _) => ("993", "Format Error".to_string()),
             Self::ForbiddenError(_) => ("994", "Forbidden Error".to_string()),
             Self::RejectError(_) => ("995", "Reject Error".to_string()),
             Self::TimeoutError(_, _) => ("996", "Server Busy".to_string()),

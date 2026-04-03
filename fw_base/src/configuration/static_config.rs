@@ -8,7 +8,9 @@ use std::time::Duration;
 #[serde(rename_all = "kebab-case")]
 pub struct CommStaticConfig {
     pub gw_dispatch_cfg: GwDispatchConfig,
+
     pub mysql_cfg: Option<MySqlConfig>,
+
     pub rpc_call_cfg: Option<RpcCallConfig>,
 }
 
@@ -31,6 +33,7 @@ impl CommStaticConfig {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GwDispatchConfig {
+    pub pass_strategy: Option<String>,
     pub dispatch_val: String,
 }
 
@@ -59,6 +62,7 @@ pub struct MySqlConfig {
 #[serde(rename_all = "kebab-case", default)]
 pub struct RpcCallConfig {
     pub caller_cfg: CallerConfig,
+
     pub callee_cfg: CalleeConfig,
 }
 

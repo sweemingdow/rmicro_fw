@@ -23,7 +23,7 @@ impl BootChainWebExt for BootChain {
         F: FnOnce(axum::Router) -> Fut + Send + 'static,
         Fut: Future<Output = axum::Router> + Send + 'static,
     {
-        let port = rs.cfg().app_cfg.http_port;
+        let port = rs.http_port();
 
         let app_name = rs.app_name().to_string();
         let profile = rs.profile().to_string();
@@ -41,12 +41,6 @@ impl BootChainWebExt for BootChain {
                             .as_ref()
                             .and_then(|c| c.uid_with_check().ok())
                             .unwrap_or("");
-
-                        /*let (req_id, uid) = request
-                        .extensions()
-                        .get::<WebContext>()
-                        .map(|ctx| (ctx.req_id(), ctx.uid_with_check().unwrap_or("")))
-                        .unwrap_or_else(|| ("", ""));*/
 
                         // 给每一个请求携带span
                         tracing::info_span!(

@@ -14,6 +14,7 @@ pub trait NacosRegister {
     async fn deregister(&self, deg_ops: DeregisterOptions) -> FwResult<()>;
 }
 
+#[derive(Debug)]
 pub struct RegisterOptions {
     pub cluster_name: Option<String>,
     pub group_name: Option<String>,
@@ -23,6 +24,7 @@ pub struct RegisterOptions {
     pub meta_data: HashMap<String, String>,
 }
 
+#[derive(Debug)]
 pub struct DeregisterOptions {
     pub cluster_name: Option<String>,
     pub group_name: Option<String>,

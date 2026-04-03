@@ -4,3 +4,27 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+fw_base = { path = "../fw_base" }
+fw_error = { path = "../fw_error" }
+fw_regdis = { path = "../fw_regdis" }
+fw_boot = { path = "../fw_boot" }
+
+pingora-core = { version = "0.8" }
+pingora-proxy = { version = "0.8" }
+pingora-http = { version = "0.8" }
+pingora-load-balancing = { version = "0.8" }
+pingora = { version = "0.8" }
+
+arc-swap = { workspace = true }
+
+serde = { workspace = true }
+postcard = { workspace = true }
+
+serde_yaml = { workspace = true }
+humantime-serde = { workspace = true }
+tracing = { workspace = true }
+prost = { workspace = true }
+async-trait = { workspace = true }
+http = { workspace = true }
+tokio = { workspace = true }
+nacos-sdk = { workspace = true }

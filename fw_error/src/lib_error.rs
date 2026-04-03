@@ -14,6 +14,15 @@ pub enum FwError {
     #[error("parse error, {0}")]
     ParseError(String),
 
+    #[error("serialize error for {0}, {1}")]
+    SerializeError(&'static str, String),
+
+    #[error("deserialize error for {0}, {1}")]
+    DeserializeError(&'static str, String),
+
+    #[error("crypto error for {0}, {1}")]
+    CryptoError(&'static str, String),
+
     #[error("load error for {0}, {1}")]
     LoadError(&'static str, String),
 

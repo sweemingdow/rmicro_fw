@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["fw_base", "fw_boot", "fw_adapter", "fw_error", "fw_gateway", "fw_log", "fw_regdis", "fw_rpc", "fw_sqlx", "fw_web"]
+members = ["fw_base", "fw_boot", "fw_adapter", "fw_error", "fw_gateway", "fw_log", "fw_regdis", "fw_rpc", "fw_sqlx", "fw_web", "fw_crypto"]
 
 
 [workspace.dependencies]
@@ -14,6 +14,9 @@ tonic-build = "0.12"
 
 # 增强protobuf
 prost = "0.13"
+
+# 极致轻量序列化
+postcard = { version = "1", features = ["use-std"] }
 
 # 序列化
 serde = { version = "1.0", features = ["derive"] }
@@ -59,6 +62,7 @@ async-trait = { version = "0.1" }
 anyhow = "1.0"
 thiserror = "2.0"
 
+# 原子无锁swap
 arc-swap = { version = "1.8" }
 
 singleflight-async = { version = "0.2" }
@@ -70,3 +74,9 @@ regex = "1.12"
 futures = "0.3"
 
 pin-project = { version = "1.1" }
+
+uuid = { version = "1", features = ["rng", "v7"] }
+
+rmp-serde = { version = "1" }
+
+rand = { version = "0" }

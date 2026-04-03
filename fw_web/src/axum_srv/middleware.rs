@@ -4,12 +4,12 @@ use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 use axum::{extract::Request, http::HeaderValue, middleware::Next, response::Response};
 use fw_adapter::web_bridge::wrapper::AnyErrorWrapper;
+use fw_base::constants::web_const::{AUTH_INFO_KEY, GW_DISPATCH_KEY};
 use fw_base::context::web::WebContext;
-use fw_base::{get_gw_dispatch_val, parse_json, web_ctx_into_scope};
+use fw_base::pass::gw_pass::{AuthInfoPassStrategy, AuthInfoPassStrategyEnum};
+use fw_base::{WebPassContext, get_gw_dispatch_val, parse_json, web_ctx_into_scope, get_pass_strategy};
 use fw_error::app_error::AppError;
 
-const AUTH_INFO_KEY: &'static str = "X-Auth-Info";
-const GW_DISPATCH_KEY: &'static str = "X-Gw-Dispatch-Key";
 
 pub async fn auth_layer(req: Request, next: Next) -> Response {
     let headers = req.headers();
@@ -20,7 +20,7 @@ pub async fn auth_layer(req: Request, next: Next) -> Response {
 
     // 解析鉴权参数
     match parse_auth_info(headers) {
-        Ok(ctx) => web_ctx_into_scope(ctx, next.run(req)).await,
+        Ok(ctx) => web_ctx_into_scope(WebContext::new(ctx), next.run(req)).await,
         Err(ae) => AnyErrorWrapper::from_app_err(ae).into_response(),
     }
 }
@@ -56,17 +56,13 @@ fn is_from_gw_forwarded(headers: &HeaderMap<HeaderValue>) -> Option<Response> {
     None
 }
 
-fn parse_auth_info(headers: &HeaderMap<HeaderValue>) -> Result<WebContext, AppError> {
-    let Some(info_json) = utils::get_val_from_header(AUTH_INFO_KEY, headers) else {
-        return Err(AppError::ForbiddenError("no authed".to_string()));
+fn parse_auth_info(headers: &HeaderMap<HeaderValue>) -> Result<WebPassContext, AppError> {
+    let Some(val) = utils::get_val_from_header(AUTH_INFO_KEY, headers) else {
+        return Err(AppError::ForbiddenError("no authed info found".to_string()));
     };
 
-    let ctx = match parse_json(info_json).map(WebContext::new) {
-        Ok(ctx) => ctx,
-        Err(ae) => {
-            return Err(ae);
-        }
-    };
-
-    Ok(ctx)
+    match get_pass_strategy().decode(&val.as_bytes().to_vec()) {
+        Ok(ctx) => Ok(ctx),
+        Err(fe) => Err(AppError::from(fe)),
+    }
 }
