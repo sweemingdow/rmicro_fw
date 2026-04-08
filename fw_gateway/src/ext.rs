@@ -1,4 +1,5 @@
 pub mod config_ext;
+pub mod result_ext;
 
 use crate::PingoraResult;
 use async_trait::async_trait;

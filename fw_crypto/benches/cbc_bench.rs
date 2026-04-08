@@ -1,11 +1,11 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use fw_crypto::aes::{AesBitsType, AesKeyDisplayType};
-use fw_crypto::aes::cbc::{AesCbc, gen_cbc_256_key_with_hex, gen_iv_with_hex};
+use fw_crypto::aes::cbc::{AesCbc, gen_cbc_256_key_as_hex, gen_iv_as_hex};
 
 fn cbc_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("AEC_CBC Generation");
-    let key = gen_cbc_256_key_with_hex();
-    let iv = gen_iv_with_hex();
+    let key = gen_cbc_256_key_as_hex();
+    let iv = gen_iv_as_hex();
 
     let plaintext = "Hello AES-256-CBC！中文测试 🎉";
 

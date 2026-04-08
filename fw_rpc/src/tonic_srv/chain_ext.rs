@@ -25,7 +25,7 @@ impl BootChainRpcExt for BootChain {
     where
         F: FnOnce(&mut Server) -> server::Router + Send + 'static,
     {
-        let port = rs.cfg().app_cfg.rpc_port;
+        let port = rs.rpc_port();
         let span = tracing::Span::current();
 
         self.add_backend(name, move |token| {
@@ -44,7 +44,7 @@ impl BootChainRpcTraceExt for BootChain {
     where
         F: FnOnce(&mut FwTraceServer) -> FwTraceRouter + Send + 'static,
     {
-        let port = rs.cfg().app_cfg.rpc_port;
+        let port = rs.rpc_port();
         let span = tracing::Span::current();
 
         self.add_backend(name, move |token| {
@@ -81,7 +81,7 @@ impl BootChainRpcTimeoutExt for BootChain {
     where
         F: FnOnce(&mut FwTraceTimeoutServer) -> FwTraceTimeoutRouter + Send + 'static,
     {
-        let port = rs.cfg().app_cfg.rpc_port;
+        let port = rs.rpc_port();
         let span = tracing::Span::current();
 
         self.add_backend(name, move |token| {

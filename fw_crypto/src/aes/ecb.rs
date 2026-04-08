@@ -134,22 +134,22 @@ pub fn ecb_128_decrypt(key: &[u8], ciphertext_b64: &str) -> FwResult<String> {
     String::from_utf8(plaintext).map_err(|e| FwError::CryptoError("ecb_128_decrypt", e.to_string()))
 }
 
-pub fn gen_ecb_256_key_with_hex() -> String {
+pub fn gen_ecb_256_key_as_hex() -> String {
     let key = Aes256EcbEnc::generate_key(OsRng);
     hex_encode(key)
 }
 
-pub fn gen_ecb_128_key_with_hex() -> String {
+pub fn gen_ecb_128_key_as_hex() -> String {
     let key = Aes128EcbEnc::generate_key(OsRng);
     hex_encode(key)
 }
 
-pub fn gen_ecb_256_key_with_b64() -> String {
+pub fn gen_ecb_256_key_as_b64() -> String {
     let key = Aes256EcbEnc::generate_key(OsRng);
     b64::encode(key)
 }
 
-pub fn gen_ecb_128_key_with_b64() -> String {
+pub fn gen_ecb_128_key_as_b64() -> String {
     let key = Aes128EcbEnc::generate_key(OsRng);
     b64::encode(key)
 }
@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_ecb_256() {
-        let key_hex = gen_ecb_256_key_with_hex();
+        let key_hex = gen_ecb_256_key_as_hex();
         let key = hex_decode(&key_hex).unwrap();
 
         let plaintext = "Hello AES-256-ECB！测试数据";
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_ecb_128() {
-        let key_hex = gen_ecb_128_key_with_hex();
+        let key_hex = gen_ecb_128_key_as_hex();
         let key = hex_decode(&key_hex).unwrap();
 
         let plaintext = "Hello AES-128-ECB！";
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_aec_ecb() {
-        let key = gen_ecb_256_key_with_b64();
+        let key = gen_ecb_256_key_as_b64();
 
         let ae = AesEcb::new(&key, AesBitsType::Bits256, AesKeyDisplayType::B64).unwrap();
 

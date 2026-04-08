@@ -55,7 +55,7 @@ impl App {
         let app_name = cfg.app_cfg.app_name.clone();
         let profile = cfg.app_cfg.profile.clone();
         let http_port = Self::reselect_http_port(cfg.app_cfg.http_port);
-        let rpc_port = cfg.app_cfg.rpc_port;
+        let rpc_port = Self::reselect_rpc_port(cfg.app_cfg.rpc_port);
 
         recorder::init_project_name(app_name.clone());
 
@@ -459,20 +459,29 @@ impl App {
             self.get_profile(),
             self.get_mip(),
             self.get_http_port(),
+            self.get_rpc_port(),
             self.cfg.clone(),
             self.cancel_token.clone(),
         )
         .await
     }
 
-    fn reselect_http_port(port_from_cfg: u16) -> u16 {
-        if let Ok(port_str) = env::var("HTTP_PORT") {
+    fn reselect_port(port_from_cfg: u16, port_name: &str) -> u16 {
+        if let Ok(port_str) = env::var(port_name) {
             if let Ok(port) = port_str.parse::<u16>() {
                 return port;
             }
         }
 
         port_from_cfg
+    }
+
+    fn reselect_http_port(port_from_cfg: u16) -> u16 {
+        Self::reselect_port(port_from_cfg, "HTTP_PORT")
+    }
+
+    fn reselect_rpc_port(port_from_cfg: u16) -> u16 {
+        Self::reselect_port(port_from_cfg, "RPC_PORT")
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::aes::{ AesBitsType, AesKeyDisplayType};
+use crate::aes::{AesBitsType, AesKeyDisplayType};
 use crate::hex::{hex_decode, hex_encode};
 use crate::{b64, into_plain};
 use aes_gcm::{
@@ -12,7 +12,7 @@ pub struct AesGcm {
 }
 
 impl AesGcm {
-    pub fn new(key_str: &str, key_type: AesKeyDisplayType) -> FwResult<Self> {
+    pub fn from_str(key_str: &str, key_type: AesKeyDisplayType) -> FwResult<Self> {
         let key = key_type.to_bin(key_str)?;
 
         Ok(Self { key })
@@ -78,35 +78,35 @@ pub fn gcm_256_decrypt(key: &[u8], ciphers: &str, nonce: &str) -> FwResult<Strin
 }
 
 // 32个字符
-pub fn gen_gcm_256_key_with_hex() -> String {
+pub fn gen_gcm_256_key_as_hex() -> String {
     let key = Aes256Gcm::generate_key(OsRng);
     hex_encode(key)
 }
 
 // 32个字符
-pub fn gen_gcm_256_key_with_b64() -> String {
+pub fn gen_gcm_256_key_as_b64() -> String {
     let key = Aes256Gcm::generate_key(OsRng);
     b64::encode(key)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::aes::gcm::{AesGcm, gcm_256_decrypt, gcm_256_encrypt, gen_gcm_256_key_with_hex};
+    use crate::aes::AesKeyDisplayType;
+    use crate::aes::gcm::{AesGcm, gcm_256_decrypt, gcm_256_encrypt, gen_gcm_256_key_as_hex, gen_gcm_256_key_as_b64};
     use crate::hex::{hex_decode, hex_encode};
     use aes_gcm::aead::OsRng;
     use aes_gcm::{Aes128Gcm, Aes256Gcm, KeyInit};
-    use crate::aes::AesKeyDisplayType;
 
     #[test]
     fn test_gen_aes_key() {
-        let key = gen_gcm_256_key_with_hex();
+        let key = gen_gcm_256_key_as_hex();
         println!("key={}", hex_encode(key));
 
         // 5f3ebc7fb529ae64f3ef742d2fbf1694c29b5ca62ba6933052e169bf17a56c3a
         let key = Aes256Gcm::generate_key(OsRng);
         println!("key={}", hex_encode(key));
 
-        let key = gen_gcm_256_key_with_hex();
+        let key = gen_gcm_256_key_as_hex();
         let key = hex_encode(key);
         println!("key={}", key);
 
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_aes_gcm() {
-        let key = gen_gcm_256_key_with_hex();
+        let key = gen_gcm_256_key_as_hex();
         println!("key={}", key);
 
         let key = hex_decode(key).unwrap();
@@ -137,10 +137,13 @@ mod tests {
 
     #[test]
     fn tes_aes_gcm_struct() {
-        let key = gen_gcm_256_key_with_hex();
+        let key = gen_gcm_256_key_as_hex();
         println!("key={}", key);
 
-        let ag = AesGcm::new(&key, AesKeyDisplayType::Hex).unwrap();
+        let key = gen_gcm_256_key_as_b64();
+        println!("key={}", key);
+
+        let ag = AesGcm::from_str(&key, AesKeyDisplayType::B64).unwrap();
 
         let plain = "我是大哥啊@fdfdsf_*&^$#iewj~fdlsjl---------~33!- - ~ -~@!@!!!!!!fdsf火星文誃尐亽籟萿亍丗，萿嘚像嗰怎庅說嘟卟嗵の徣ロ";
         println!("plain={}", plain);

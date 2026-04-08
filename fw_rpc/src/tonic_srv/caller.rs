@@ -124,7 +124,7 @@ impl RpcCaller {
                 }
 
                 Err(AppError::RpcCallError(format!(
-                    "rpc call err, status={:?}",
+                    "response status={:?}",
                     status
                 )))
             }

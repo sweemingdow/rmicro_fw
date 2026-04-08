@@ -155,37 +155,37 @@ pub fn cbc_128_decrypt(key: &[u8], ciphertext_b64: &str, iv_b64: &str) -> FwResu
 }
 
 /// 生成随机 AES-256 密钥（十六进制）
-pub fn gen_cbc_256_key_with_hex() -> String {
+pub fn gen_cbc_256_key_as_hex() -> String {
     let key = Aes256CbcEnc::generate_key(OsRng);
     hex_encode(key)
 }
 
 /// 生成随机 AES-128 密钥（十六进制）
-pub fn gen_cbc_128_key_with_hex() -> String {
+pub fn gen_cbc_128_key_as_hex() -> String {
     let key = Aes128CbcEnc::generate_key(OsRng);
     hex_encode(key)
 }
 
 /// 生成随机 AES-256 密钥（十六进制）
-pub fn gen_cbc_256_key_with_b64() -> String {
+pub fn gen_cbc_256_key_as_b64() -> String {
     let key = Aes256CbcEnc::generate_key(OsRng);
     b64::encode(key)
 }
 
 /// 生成随机 AES-128 密钥（十六进制）
-pub fn gen_cbc_128_key_with_b64() -> String {
+pub fn gen_cbc_128_key_as_b64() -> String {
     let key = Aes128CbcEnc::generate_key(OsRng);
     b64::encode(key)
 }
 
 /// 生成随机 IV（16 字节）
-pub fn gen_iv_with_hex() -> String {
+pub fn gen_iv_as_hex() -> String {
     let iv = Aes256CbcEnc::generate_iv(OsRng);
     hex_encode(iv)
 }
 
 /// 生成随机 IV（16 字节）
-pub fn gen_iv_with_b64() -> String {
+pub fn gen_iv_as_b64() -> String {
     let iv = Aes256CbcEnc::generate_iv(OsRng);
     b64::encode(iv)
 }
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_cbc_256() {
-        let key_hex = gen_cbc_256_key_with_hex();
+        let key_hex = gen_cbc_256_key_as_hex();
         let key = hex_decode(&key_hex).unwrap();
 
         let plaintext = "Hello AES-256-CBC！中文测试 🎉";
@@ -217,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_cbc_128() {
-        let key_hex = gen_cbc_128_key_with_hex();
+        let key_hex = gen_cbc_128_key_as_hex();
         let key = hex_decode(&key_hex).unwrap();
 
         let plaintext = "Hello AES-128-CBC！测试数据";
@@ -230,8 +230,8 @@ mod tests {
 
     #[test]
     fn test_aes_cbc() {
-        let key = gen_cbc_256_key_with_hex();
-        let iv = gen_iv_with_hex();
+        let key = gen_cbc_256_key_as_hex();
+        let iv = gen_iv_as_hex();
 
         let ac = AesCbc::new(&key, &iv, AesBitsType::Bits256, AesKeyDisplayType::Hex).unwrap();
 
