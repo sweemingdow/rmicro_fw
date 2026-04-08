@@ -19,10 +19,17 @@ thiserror = { workspace = true }
 uuid = { workspace = true }
 rmp-serde = { workspace = true } # msg-pack
 postcard = { workspace = true }
+rand = { workspace = true }
+dashmap = { workspace = true }
+rayon = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
 
 [[bench]]
 name = "uuid_bench"
+harness = false
+
+[[bench]]
+name = "rand_str_bench"
 harness = false
