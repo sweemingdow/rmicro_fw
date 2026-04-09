@@ -107,7 +107,6 @@ mod tests {
 mod bench_tests {
     use super::*;
     use dashmap::DashMap;
-    use rayon::prelude::*;
     use std::collections::HashMap;
     use std::sync::Arc;
     use std::sync::Barrier;
